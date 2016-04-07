@@ -32,6 +32,8 @@ var config = {
     new HtmlWebpackPlugin({
       title: 'Webpack demo',
       inject: 'body',
+      minify: false,
+      hash: false,
       template: 'index.ejs'
     })
   ],
