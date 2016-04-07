@@ -13,11 +13,12 @@ const PATHS = {
   //ReactDOM: path.join(__dirname, 'node_modules/react/lib/react-dom.min.js'),
   app: path.join(__dirname, 'app'),
   build: path.join(__dirname, 'build'),
-  style: path.join(__dirname, 'app/main.css')
+  style: path.join(__dirname, 'app/index.css')
 }
 
 var config = {
   entry: {
+    style: PATHS.style,
     app: PATHS.app
   },
   output: {
