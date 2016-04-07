@@ -3,6 +3,9 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const NpmInstallPlugin = require('npm-install-webpack-plugin');
 const TARGET = process.env.npm_lifecycle_event;
+const CleanWebpackPlugin = require('clean-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const pkg = require('./package.json');
 process.env.BABEL_ENV = TARGET;
 
 const PATHS = {
@@ -19,7 +22,7 @@ var config = {
   },
   output: {
     path: PATHS.build,
-    filename: 'bundle.js'
+    filename: '[name].js'
   },
   resolve: {
     extensions: ['', '.js', '.jsx']
@@ -34,11 +37,6 @@ var config = {
   module: {
     loaders: [
       {
-        test: /\.css$/,
-        loaders: ['style', 'css'],
-        include: PATHS.app
-      },
-      {
         test: /\.jsx?$/,
         loader: 'babel?cacheDirectory',
         /*query: {
@@ -51,28 +49,26 @@ var config = {
         include: PATHS.app
       }
     ]
-  },
+  }
 }
 
 switch (TARGET) {
   case 'start':
-    Object.assign(config, {
-      devServer: {
-        contentBase: PATHS.build,
-        // Enable history API fallback so HTML5 History API based
-        // routing works. This is a good default that will come
-        // in handy in more complicated setups.
-        historyApiFallback: true,
-        devtool: 'eval-source-map',
-        hot: true,
-        inline: true,
-        progress: true,
-        // Display only errors to reduce the amount of output.
-        stats: 'errors-only',
-        host: process.env.HOST || '0.0.0.0',
-        port: process.env.PORT || 8080
-      }
-    })
+    config.devServer = {
+      contentBase: PATHS.build,
+      // Enable history API fallback so HTML5 History API based
+      // routing works. This is a good default that will come
+      // in handy in more complicated setups.
+      historyApiFallback: true,
+      devtool: 'eval-source-map',
+      hot: true,
+      inline: true,
+      progress: true,
+      // Display only errors to reduce the amount of output.
+      stats: 'errors-only',
+      host: process.env.HOST || '0.0.0.0',
+      port: process.env.PORT || 8080
+    }
     /*config.module.noParse = [
       PATHS.React, PATHS.ReactDOM
     ];
@@ -82,27 +78,47 @@ switch (TARGET) {
         'react-dom': PATHS.ReactDOM
       }
     };*/
-    config.plugins = config.plugins.concat([
+    config.module.loaders.push({
+      test: /\.css$/,
+      loaders: ['style', 'css'],
+      include: PATHS.app
+    })
+    config.plugins.push(
       new webpack.HotModuleReplacementPlugin(),
       new NpmInstallPlugin({
         save: true
       })
-    ])
+    )
     break;
   case 'build':
-    config.plugins = config.plugins.concat([
+    config.entry.vendor = Object.keys(pkg.dependencies)
+    config.output = {
+      path: PATHS.build,
+      filename: '[name].[chunkhash].js',
+      chunkFilename: '[chunkhash].js'
+    }
+    config.module.loaders.push({
+      test: /\.css$/,
+      loader: ExtractTextPlugin.extract('style', 'css'),
+      include: PATHS.app
+    })
+    config.plugins.push(
       // Setting DefinePlugin affects React library size!
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify('production')
       }),
+      new ExtractTextPlugin('[name].[chunkhash].css'),
+      new CleanWebpackPlugin([PATHS.build]),
       new webpack.optimize.UglifyJsPlugin({
         compress: {
           warnings: false
         }
+      }),
+      // CommonsChunkPlugin allows us to extract the code we need for the vendor bundle. In addition, we will use it to extract a manifest. It is a file that tells Webpack how to map each module to each file. We will need this in the next step for setting up long term caching.
+      new webpack.optimize.CommonsChunkPlugin({
+        names: ['vendor', 'manifest']
       })
-    ])
-    break;
-  default:
+    )
     break;
 }
 module.exports = config 
