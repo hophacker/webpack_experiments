@@ -6,8 +6,11 @@ const TARGET = process.env.npm_lifecycle_event;
 process.env.BABEL_ENV = TARGET;
 
 const PATHS = {
+  //React: path.join(__dirname, 'node_modules/react/dist/react.min.js'),
+  //ReactDOM: path.join(__dirname, 'node_modules/react/lib/react-dom.min.js'),
   app: path.join(__dirname, 'app'),
-  build: path.join(__dirname, 'build')
+  build: path.join(__dirname, 'build'),
+  style: path.join(__dirname, 'app/main.css')
 }
 
 var config = {
@@ -66,25 +69,38 @@ switch (TARGET) {
         progress: true,
         // Display only errors to reduce the amount of output.
         stats: 'errors-only',
-        // Parse host and port from env so this is easy to customize.
-        //
-        // If you use Vagrant or Cloud9, set
-        // host: process.env.HOST || '0.0.0.0';
-        //
-        // 0.0.0.0 is available to all network devices unlike default
-        // localhost
-        host: process.env.HOST || 'localhost',
+        host: process.env.HOST || '0.0.0.0',
         port: process.env.PORT || 8080
       }
     })
+    /*config.module.noParse = [
+      PATHS.React, PATHS.ReactDOM
+    ];
+    config.resolve = {
+      alias: {
+        react: PATHS.React,
+        'react-dom': PATHS.ReactDOM
+      }
+    };*/
     config.plugins = config.plugins.concat([
       new webpack.HotModuleReplacementPlugin(),
       new NpmInstallPlugin({
-        save: true // --save
+        save: true
       })
     ])
     break;
   case 'build':
+    config.plugins = config.plugins.concat([
+      // Setting DefinePlugin affects React library size!
+      new webpack.DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify('production')
+      }),
+      new webpack.optimize.UglifyJsPlugin({
+        compress: {
+          warnings: false
+        }
+      })
+    ])
     break;
   default:
     break;
